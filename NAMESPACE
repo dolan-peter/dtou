@@ -1,1 +1,3 @@
+useDynLib(dtou)
 exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp,evalCpp)
