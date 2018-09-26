@@ -3,13 +3,17 @@ Type: Package
 Title: Calculates Distance to Uniqueness Metric for Genomic Strings
 Version: 0.1.0
 Authors@R: person("Peter","Dolan",email="dolan118@morris.umn.edu",role=c("aut","cre"))
-Description: For a collection of strings, calculates the shortest 
+Description: For a collection of genomic sequences, calculates the shortest 
     unique substring (forward and reverse complement) for each
-    location in the string
+    location in the string.
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports: Rcpp (>= 0.11.0)
 LinkingTo: Rcpp
 URL: http://seq.morris.umn.edu/dtou
+Imports:
+    Rcpp
+Suggests:
+    Biostrings
 
