@@ -2,6 +2,7 @@
 #include "rc.c"
 using namespace Rcpp;
 
+
 char *S1;        // Global character array containing String imported from R
 long *I1;        // Global Stack
 long *dtou;      // Global array that will hold the results
@@ -49,17 +50,18 @@ List convertRStringsandGlobalSetup(std::vector<std::string> RString, bool parseR
 		}
 		S1[k++]='X'; // Add the X at the end
 	}
-	Rcout << "\tProcessed " << k << " characters.  Expected " << n <<".\n";
+	Rcout << "\tProcessed " << k << " characters/boundaries.  Expected " << n <<".\n";
 	S1[n] = 0; // If we're not parsing RC then we're ready to go... otherwise this will be overwritten:
-
+  //Rcout << "Before duplication " <<S1<<"\n";
 	if(parseRC){
 		for(i=0;i<n;i++){ // duplicate string
 			S1[n+i]=S1[i];
 		}
 		S1[2*n]=0;        // Add a safety margin.
+		//Rcout << "After duplication " <<S1<<"\n";
 		rc(S1+n-1);       // This way we include the final 'X'
 	}
-
+	//Rcout << "After rc " <<S1<<"\n";
 	I1=new long[n1+1];
 	dtou = new long[n1+1]; // We should not need to initialize these-- that should be handled automatically during processing
 
@@ -234,63 +236,6 @@ void recurseWithSize(long Ip1, long depth,long stackSize){
 	return;
 }
 
-
-void updateResults(std::vector<std::string> RString,List results){
-	long unsigned i,j,tmp;
-	long unsigned n=0;
-	long unsigned n_strings=RString.size();
-
-	for(j=0;j<n_strings;j++){
-		tmp=RString[j].size();
-		for(i=0; i<tmp;i++){
-			((NumericVector) results[j])[i]=dtou[n];
-			n++;
-		}
-		n++; // We do NOT record the results of the 'X'... but we do need to pass-over the result
-
-	}
-}
-
-
-// [[Rcpp::export]]
-List c_dtou(std::vector<std::string> RString){ //TODO:  Ensure that RString is using ASCII encoding
-	  List results=convertRStringsandGlobalSetup(RString,true,0); // This version doesn't use-depth-limiting
-
-		Rcout << "\tBeginning scan...";
-		recurse(0,0);
-		Rcout <<"done\n";
-
-		updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
-
-	  return results;
-}
-
-// [[Rcpp::export]]
-List c_limiteddtou(std::vector<std::string> RString,long depth){ //TODO:  Ensure that RString is using ASCII encoding
-	List results=convertRStringsandGlobalSetup(RString,true,depth); // This version use-depth-limiting
-
-	Rcout << "\tBeginning scan...";
-	depthLimitedRecurse(0,0);
-	Rcout <<"done\n";
-
-	updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
-
-	return results;
-}
-
-// [[Rcpp::export]]
-List c_dtouC(std::vector<std::string> RString){ //TODO:  Ensure that RString is using ASCII encoding
-	List results=convertRStringsandGlobalSetup(RString,true,0); // This version doesn't use-depth-limiting
-
-	Rcout << "\tBeginning scan...";
-	recurseWithSize(0,0,_stringLength+1);
-	Rcout <<"done\n";
-
-	updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
-
-	return results;
-}
-
 void depthLimitedRecurseWithSize(long Ip1, long depth,long stackSize){
 	long A1=-1, C1=-1, G1=-1, T1=-1;
 	long ASize=0,CSize=0,GSize=0,TSize=0;
@@ -360,10 +305,67 @@ void depthLimitedRecurseWithSize(long Ip1, long depth,long stackSize){
 	return;
 }
 
+void updateResults(std::vector<std::string> RString,List results){
+	long unsigned i,j,tmp;
+	long unsigned n=0;
+	long unsigned n_strings=RString.size();
+
+	for(j=0;j<n_strings;j++){
+		tmp=RString[j].size();
+		for(i=0; i<tmp;i++){
+			((NumericVector) results[j])[i]=dtou[n];
+			n++;
+		}
+		n++; // We do NOT record the results of the 'X'... but we do need to pass-over the result
+
+	}
+}
+
+
+// [[Rcpp::export]]
+List c_dtou(std::vector<std::string> RString,bool rc){ //TODO:  Ensure that RString is using ASCII encoding
+	  List results=convertRStringsandGlobalSetup(RString,rc,0); // This version doesn't use-depth-limiting
+
+		Rcout << "\tBeginning scan...";
+		recurse(0,0);
+		Rcout <<"done\n";
+
+		updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
+
+	  return results;
+}
+
+// [[Rcpp::export]]
+List c_dtouDepthLimit(std::vector<std::string> RString,bool rc,long depth){ //TODO:  Ensure that RString is using ASCII encoding
+	List results=convertRStringsandGlobalSetup(RString,rc,depth); // This version use-depth-limiting
+
+	Rcout << "\tBeginning scan...";
+	depthLimitedRecurse(0,0);
+	Rcout <<"done\n";
+
+	updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
+
+	return results;
+}
+
+// [[Rcpp::export]]
+List c_dtouS2(std::vector<std::string> RString,bool rc){ //TODO:  Ensure that RString is using ASCII encoding
+	List results=convertRStringsandGlobalSetup(RString,rc,0); // This version doesn't use-depth-limiting
+
+	Rcout << "\tBeginning scan...";
+	recurseWithSize(0,0,_stringLength+1);
+	Rcout <<"done\n";
+
+	updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
+
+	return results;
+}
+
+
 // Change NumericVector to list
 // [[Rcpp::export]]
-List c_limiteddtouC(std::vector<std::string> RString, long depth){ //TODO:  Ensure that RString is using ASCII encoding
-	List results=convertRStringsandGlobalSetup(RString,true,depth); // This version is depth-limiting
+List c_dtouS2DepthLimit(std::vector<std::string> RString, bool rc,long depth){ //TODO:  Ensure that RString is using ASCII encoding
+	List results=convertRStringsandGlobalSetup(RString,rc,depth); // This version is depth-limiting
 
 	Rcout << "\tBeginning scan...";
 	depthLimitedRecurseWithSize(0,0,_stringLength+1);
@@ -379,13 +381,17 @@ List c_limiteddtouC(std::vector<std::string> RString, long depth){ //TODO:  Ensu
 //
 
 /*** R
-c_dtou("AAAAACCCGACTGGGCTCA")
-c_dtou(c("AAAAACCCGACTGGGCTCA","ACCT"))
-c_dtou("AAAAACCCGACTGGGCTCAXACCT")
-c_limiteddtou("AAAAACCCGACTGGGCTCAX",10)
-c_limiteddtou(c("AAAAACCCGACTGGGCTCA","ACCT"),2)
-c_dtouC("AAAAACCCGACTGGGCTCA")
-c_dtouC(c("AAAAACCCGACTGGGCTCA","ACCT"))
-c_limiteddtouC("AAAAACCCGACTGGGCTCAX",10)
-c_limiteddtouC(c("AAAAACCCGACTGGGCTCA","ACCT"),2)
+c_dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),TRUE)
+c_dtou("AAAAACCCGACTGGGCTCAXACCT",TRUE)
+c_dtou("AAAAACCCGACTGGGCTCAXACCT",FALSE)
+c_dtouDepthLimit("AAAAACCCGACTGGGCTCAX",TRUE,10)
+c_dtouDepthLimit(c("AAAAACCCGACTGGGCTCA","ACCT"),TRUE,2)
+c_dtouDepthLimit("AAAAACCCGACTGGGCTCAXACCT",FALSE,4)
+c_dtouDepthLimit("AAAAACCCGACTGGGCTCAXACCT",TRUE,4)
+c_dtouS2("AAAAACCCGACTGGGCTCA",TRUE)
+c_dtouS2("AAAAACCCGACTGGGCTCA",FALSE)
+c_dtouS2(c("AAAAACCCGACTGGGCTCA","ACCT"),TRUE)
+c_dtouS2DepthLimit("AAAAACCCGACTGGGCTCAX",TRUE,10)
+c_dtouS2DepthLimit(c("AAAAACCCGACTGGGCTCA","ACCT"),TRUE,2)
+c_dtouS2DepthLimit("AAAAACCCGACTGGGCTCAXACCT",FALSE,4)
 */
