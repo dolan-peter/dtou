@@ -38,10 +38,10 @@
 #' @export
 #'
 #' @examples
-#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE))
-#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=FALSE))
-#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE,depth=3))
-#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),depth=3,optimizeForSpeed=TRUE)))
+#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE)
+#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=FALSE)
+#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE,depth=3)
+#' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),depth=3,optimizeForSpeed=TRUE)
 #'
 dtou=function(str,rc=TRUE,depth=NULL,optimizeForSpeed=FALSE){
 	if(class(optimizeForSpeed)!="logical"){stop("Parameter <optimizeForSpeed> must be a logical")}
