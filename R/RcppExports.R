@@ -17,3 +17,7 @@ c_dtouS2DepthLimit <- function(RString, rc, depth) {
     .Call('_dtou_c_dtouS2DepthLimit', PACKAGE = 'dtou', RString, rc, depth)
 }
 
+c_vignetteExample <- function(RString, rc) {
+    .Call('_dtou_c_vignetteExample', PACKAGE = 'dtou', RString, rc)
+}
+

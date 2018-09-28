@@ -1,6 +1,6 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "Introduction and Examples of Use"
+author: "Peter Dolan"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
@@ -14,81 +14,130 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+library(dtou)
+library(kableExtra)
 ```
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+## Purpose
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+The purpose of this package is to aid in the rapid prototyping of analytic pipelines by introducing an algorithm developed to calculate the **distance to uniqueness** (see below) metric of genomic sequences into R.  The package implements the `dtou` function-- uses of which are shown below, but perhaps even more importantly, the algorithm implemented in the C++ source code that forms the backbone of the procedure can be modified for novel analytic purposes (see [companion vignette for modifying source code](AlgorithmModifications.html) for an example)
 
-## Vignette Info
+## Distance to Uniqueness
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+The distance to uniqueness for a base-pair in a collection of genomic sequences is defined for each base as the shortest unique subsequence starting at that base.  The reverse complement can be taken into consideration when deciding the meaning of a unique subsequence.  It's easiest to see with a simple example that finds the metric for the base-pairs in the string `"AAAAACCCGACTGGGCTCA"`:
 
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+```{r}
+str="AAAAACCCGACTGGGCTCA"
+(results<-dtou(str,rc=TRUE)[[1]])
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+(The default value for `rc` is `TRUE`, but its nice to be explicit)
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+It will be easier to explain with a table:
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+```{r,echo=FALSE}
+tmp=strsplit(str,'')[[1]]
+names(results)=tmp
+kable(t(results))
 ```
 
-Also a quote using `>`:
+The 5 under the initial `A` means that the 4-mer `AAAA` is repeated, but the 5-mer `AAAAA` is not.  This is because overlaps are allowed.
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+The 4 under the first `C` means that the 4-mer `CCCG` is unique but the 3-mer `CCC` is not.  Although the 3-mer `CCC` is not repeated, its reverse complement `GGG` does appear in the string.  If we run `dtou()` with `rc=FALSE`:
 
-#Vignette proper
+```{r}
+(results<-dtou(str,rc=FALSE)[[1]])
+```
+
+```{r,echo=FALSE}
+tmp=strsplit(str,'')[[1]]
+names(results)=tmp
+kable(t(results))
+```
+
+Then `CCC` is unique and the metric has changed to represent this fact.
+
+## Usage
+
+The workhorse functions are all written in C++.  They *can* be invoked directly, but the function `dtou()` is designed to find the appropriate function based upon its arguments. The following arguments determine the behavior of the function
+
+Argument  | Influence
+----------|----------
+`rc`      | Boolean that determines if the reverse comlement is taken into consideration
+`depth`   | By default the recursion is not depth-limited.  Setting this value to a positive number determines the max depth of the recursion
+`optimizeForSpeed` | Determines whether the algorithm switches to a faster technique when the stack size is 2
 
 ## Ecoli example
 
-Let's look at a quick example using ecoli.  
+I downloaded and ecoli genome (strain K12, substrain MG 1655 ) with assembly name ASM584v2 using [NCBI Reference Sequence NC_000913.3](https://www.ncbi.nlm.nih.gov/nuccore/NC_000913.3?report=fasta).
 
-Start by downloading the file.  It can be 
+When this vignette was compiled the link above leads to a webpage from which the fasta file may be downloaded.  I named my copy `ecoli_str_k_12_substr_mg1655.ASM584v2.fa` and put it in a subdirectory called `data`.  I also used `Biostrings::readDNAStringSet()` to load the data and then convert it to a character vector.  This can be done without the use of `Biostrings`, but Biostrings makes things much easier.  See the [Bioconductor page for Biostrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) for information on how to install `BioStrings`:
 
-```{bash,eval=FALSE}
-
+```{r,echo=FALSE,output=FALSE,message=FALSE}
+library(Biostrings)
+ecoli=readDNAStringSet("../data/ecoli_str_k_12_substr_mg1655.ASM584v2.fa")
 ```
 
 ```{r,eval=FALSE}
-ecoli=readDNAStringSet("Escherichia_coli_str_k_12_substr_mg1655.ASM584v2.dna_sm.chromosome.Chromosome.fa")
-length(ecoli)
-str=as.character(ecoli)
-Rcpp::sourceCpp("src/dtou3.cpp")
-system.time({ecoli.results<-c_dtouC(str)})
-quantile(ecoli.results[[1]],1:99*0.01)
-sum(ecoli.results[[1]]>20)
-sum(ecoli.results[[1]]>20)/length(ecoli.results[[1]])
+library(Biostrings)
+ecoli=readDNAStringSet("data/ecoli_str_k_12_substr_mg1655.ASM584v2.fa")
 ```
 
 
+```{r}
+str<-as.character(ecoli)
+system.time({ecoli.dtou<-dtou(str)[[1]]})
+```
 
+Let's start with a graph of the metric for the genome:
+
+```{r,fig.width=7}
+plot(ecoli.dtou,
+		 pch=".",
+		 main="Distance to Uniqueness for base-pairs in Ecoli sequence",
+		 xlab="index",ylab="dtou"
+)
+```
+
+From which we can see that there are some regions of high repetition spread-out somewhat evenly along the genome.  The two highest peaks are likely the longest repeated region.  The second highest peak is likely due to substantial overlap with the first peaks, but the scale of the index along the bottom is not consistent with that along the top-- the 3000 on the y-axis only covers 1/3 of a percent of the distance from 1e+06 to 2e+06.  
+
+We can find the maximum peak and have a closer look:
+
+```{r,fig.width=7}
+window.length=7000
+i=which.max(ecoli.dtou)
+lower=i-window.length
+upper=i+window.length
+zoom=lower:upper
+head(zoom)
+plot(zoom,
+		 ecoli.dtou[zoom],
+		 pch=".",
+		 main="Distance to Uniqueness for base-pairs in Ecoli sequence (zoomed)",
+		 xlab="index",ylab="dtou"
+)
+```
+
+The majority of the dtou's for this sequence are low so it's more informative to look at the deciles than a histogram:
+
+```{r}
+quantile(ecoli.dtou,1:9*0.1)
+```
+
+We can see that only 2.8 percent of the genome is repetitive at a $20$-mer level or higher:
+
+```{r}
+sum(ecoli.dtou>20)
+sum(ecoli.dtou>20)/length(ecoli.dtou)
+```
+
+This histogram of this shows an interesting distribution:
+
+```{r,fig.width=7}
+hist(log10(ecoli.dtou[ecoli.dtou>20]),main="E.coli Upper Tail Distance to Uniqueness",xlab="log10 dtou",sub="dtou > 20")
+```
+
+# Homo Sapiens Chromosome I
 
 Here we will download *Homo Sapiens* Chromomome I and calculate the distance to uniqueness for the entire chromosome.  Appropriate modifications will need to be made if this example is being run using the windows command prompt instead of bash:
 
@@ -98,7 +147,6 @@ wget ftp://ftp.ncbi.nih.gov/genomes/Homo_sapiens/CHR_01/hs_ref_GRCh38.p12_chr1.f
 gunzip ./hs_ref_GRCh38.p12_chr1.fa.gz
 ```
 
-The next part doesn't *require* `Biostrings`, but it's much easier 
 ```{r,eval=FALSE}
 library(Biostrings)
 chr1<-readDNAStringSet("../_bigTest/hs_ref_GRCh38.p12_chr1.fa",format="fasta")

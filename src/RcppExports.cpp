@@ -55,12 +55,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// c_vignetteExample
+NumericVector c_vignetteExample(std::vector<std::string> RString, bool rc);
+RcppExport SEXP _dtou_c_vignetteExample(SEXP RStringSEXP, SEXP rcSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<std::string> >::type RString(RStringSEXP);
+    Rcpp::traits::input_parameter< bool >::type rc(rcSEXP);
+    rcpp_result_gen = Rcpp::wrap(c_vignetteExample(RString, rc));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_dtou_c_dtou", (DL_FUNC) &_dtou_c_dtou, 2},
     {"_dtou_c_dtouDepthLimit", (DL_FUNC) &_dtou_c_dtouDepthLimit, 3},
     {"_dtou_c_dtouS2", (DL_FUNC) &_dtou_c_dtouS2, 2},
     {"_dtou_c_dtouS2DepthLimit", (DL_FUNC) &_dtou_c_dtouS2DepthLimit, 3},
+    {"_dtou_c_vignetteExample", (DL_FUNC) &_dtou_c_vignetteExample, 2},
     {NULL, NULL, 0}
 };
 

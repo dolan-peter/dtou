@@ -1,7 +1,7 @@
 #include <Rcpp.h>
-#include "rc.c"
 using namespace Rcpp;
 
+extern void rc(char *str);
 
 char *S1;        // Global character array containing String imported from R
 long *I1;        // Global Stack
@@ -58,10 +58,10 @@ List convertRStringsandGlobalSetup(std::vector<std::string> RString, bool parseR
 			S1[n+i]=S1[i];
 		}
 		S1[2*n]=0;        // Add a safety margin.
-		//Rcout << "After duplication " <<S1<<"\n";
+//		Rcout << "After duplication " <<S1<<"\n";
 		rc(S1+n-1);       // This way we include the final 'X'
 	}
-	//Rcout << "After rc " <<S1<<"\n";
+//	Rcout << "After rc " <<S1<<"\n";
 	I1=new long[n1+1];
 	dtou = new long[n1+1]; // We should not need to initialize these-- that should be handled automatically during processing
 
@@ -74,6 +74,51 @@ List convertRStringsandGlobalSetup(std::vector<std::string> RString, bool parseR
 	return(results);
 }
 
+void rc(char *str){
+	char tmp;
+	unsigned long n,i,j;
+
+	n = strlen(str);
+
+	i=0;              // Left end
+	j=n-1;             // right end
+	while(i<=j){
+		tmp=str[i];     // store the left end
+		switch(str[j]){ // Now look at the right
+		case 'A':
+			str[i]='T';
+			break;
+		case 'C':
+			str[i]='G';
+			break;
+		case 'G':
+			str[i]='C';
+			break;
+		case 'T':
+			str[i]='A';
+			break;
+		default:
+			str[i]=str[j]; // Stays the same if it's not ACGT
+		}
+		switch(tmp){
+		case 'A':
+			str[j]='T';
+			break;
+		case 'C':
+			str[j]='G';
+			break;
+		case 'G':
+			str[j]='C';
+			break;
+		case 'T':
+			str[j]='A';
+			break;
+		default:
+			str[j]=tmp;
+		}
+		i++;j--;
+	}
+}
 
 // The workhorses-- there is a LOT of code redundancy-- but in the interests of efficiency I am not adding conditionals
 void recurse(long Ip1, long depth){
@@ -375,6 +420,8 @@ List c_dtouS2DepthLimit(std::vector<std::string> RString, bool rc,long depth){ /
 
 	return results;
 }
+
+
 // You can include R code blocks in C++ files processed with sourceCpp
 // (useful for testing and development). The R code will be automatically
 // run after the compilation.
