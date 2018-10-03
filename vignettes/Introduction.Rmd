@@ -137,6 +137,22 @@ This histogram of this shows an interesting distribution:
 hist(log10(ecoli.dtou[ecoli.dtou>20]),main="E.coli Upper Tail Distance to Uniqueness",xlab="log10 dtou",sub="dtou > 20")
 ```
 
+We can get a closely related substrain as well:
+
+```{r,echo=FALSE,output=FALSE,message=FALSE}
+ecoli2=readDNAStringSet("../data/GCF_000005845.2_ASM584v2_genomic.fna")
+```
+```{r,eval=FALSE}
+ecoli2=readDNAStringSet("data/GCF_000005845.2_ASM584v2_genomic.fna")
+str2<-as.character(ecoli2)
+```
+
+Here we need to use the `optimizeForSpeed` option because the two strings are very similar and the algorithm will 
+system.time({both.dtou<-dtou(c(str,str2),optimizeForSpeed = TRUE)[[1]]})
+```
+
+And 
+
 # Homo Sapiens Chromosome I
 
 Here we will download *Homo Sapiens* Chromomome I and calculate the distance to uniqueness for the entire chromosome.  Appropriate modifications will need to be made if this example is being run using the windows command prompt instead of bash:
