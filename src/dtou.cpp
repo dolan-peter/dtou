@@ -281,6 +281,87 @@ void recurseWithSize(long Ip1, long depth,long stackSize){
 	return;
 }
 
+void recurseWithSizeB(long Ip1, long depth,long stackSize){
+	long A1=-1, C1=-1, G1=-1, T1=-1;
+	long ASize=0,CSize=0,GSize=0,TSize=0;
+
+	if(Ip1==-1){
+		return;}
+	if(I1[Ip1]==-1){ // Only one entry exists in the stack
+		dtou[Ip1]=(dtou[Ip1]>depth)?dtou[Ip1]:depth;
+		return;
+	}
+	if(stackSize==2){
+		l = Ip1+depth;
+		m = I1[Ip1]+depth;
+
+		if(dtou[Ip1]>depth && dtou[I1[Ip1]]>depth){ // If we've already parsed these regions and they're longer than our current depth than this run is superfluous
+			return;
+		}
+		while(S1[l]==S1[m]){
+			l++;m++;
+		} ; // Run until they are different... assumption is that we will NOT cross 'X's
+		// That might not be warranted-- I'll try it without the safeguard first
+		// And then see what kind of performance hit I get if I scan for 'X'
+
+		// Now we need to set values for dtou
+		//	dtou[I1[Ip1]]=l-Ip1+1;
+		// dtou[Ip1]=l-Ip1+1;
+		m=0;
+		while(l>Ip1+depth+1){ // Don't go too deep with the over-writing
+			dtou[I1[Ip1]+m]=(dtou[I1[Ip1]+m]>l-Ip1+1)?(dtou[I1[Ip1]+m]):(l-Ip1+1);
+			dtou[Ip1+m]=(dtou[Ip1+m]>l-Ip1+1)?(dtou[Ip1+m]):(l-Ip1+1);
+			l--;
+			m++;
+		}
+		if(S1[l]=='X'){dtou[Ip1]--;}
+
+		dtou[I1[Ip1]]=l-Ip1+1;
+		if(S1[m]=='X'){dtou[I1[Ip1]]--;}
+
+		I1[Ip1]=-1;               // Close down this stack... other value should already be -1
+		return;
+	}
+
+	i=Ip1;
+	while(i!=-1){
+		next=I1[i];
+		switch(S1[i+depth]){
+		case 'A':
+			I1[i]=A1;
+			A1=i;
+			ASize++;
+			break;
+		case 'C':
+			I1[i]=C1;
+			C1=i;
+			CSize++;
+			break;
+		case 'G':
+			I1[i]=G1;
+			G1=i;
+			GSize++;
+			break;
+		case 'T':
+			I1[i]=T1;
+			T1=i;
+			TSize++;
+			break;
+		case 'N':
+		case 'X':
+			I1[i]=-1;
+			dtou[i]=depth;
+			break;
+		}
+		i=next;
+	}
+	recurseWithSizeB(A1,depth+1,ASize);
+	recurseWithSizeB(C1,depth+1,CSize);
+	recurseWithSizeB(G1,depth+1,GSize);
+	recurseWithSizeB(T1,depth+1,TSize);
+	return;
+}
+
 void depthLimitedRecurseWithSize(long Ip1, long depth,long stackSize){
 	long A1=-1, C1=-1, G1=-1, T1=-1;
 	long ASize=0,CSize=0,GSize=0,TSize=0;
@@ -406,6 +487,19 @@ List c_dtouS2(std::vector<std::string> RString,bool rc){ //TODO:  Ensure that RS
 	return results;
 }
 
+// [[Rcpp::export]]
+List c_dtouS2B(std::vector<std::string> RString,bool rc){ //TODO:  Ensure that RString is using ASCII encoding
+	List results=convertRStringsandGlobalSetup(RString,rc,0); // This version doesn't use-depth-limiting
+
+	Rcout << "\tBeginning scan...";
+	recurseWithSizeB(0,0,_stringLength+1);
+	Rcout <<"done\n";
+
+	updateResults(RString,results); //Prepares results for being returned-- needs RString to get the sizes correct
+
+	return results;
+}
+
 
 // Change NumericVector to list
 // [[Rcpp::export]]
@@ -420,6 +514,7 @@ List c_dtouS2DepthLimit(std::vector<std::string> RString, bool rc,long depth){ /
 
 	return results;
 }
+
 
 
 // You can include R code blocks in C++ files processed with sourceCpp

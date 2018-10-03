@@ -87,6 +87,7 @@ ecoli=readDNAStringSet("data/ecoli_str_k_12_substr_mg1655.ASM584v2.fa")
 ```{r}
 str<-as.character(ecoli)
 system.time({ecoli.dtou<-dtou(str)[[1]]})
+#system.time({ecolib.dtou<-c_dtouS2B(str,TRUE)[[1]]})
 ```
 
 Let's start with a graph of the metric for the genome:
@@ -150,7 +151,7 @@ str2<-as.character(ecoli2)
 Here we need to use the `optimizeForSpeed` option because the two strings are very similar and the algorithm will 
 system.time({both.dtou<-dtou(c(str,str2),optimizeForSpeed = TRUE)[[1]]})
 ```
-
+```
 And 
 
 # Homo Sapiens Chromosome I
