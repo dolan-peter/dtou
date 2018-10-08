@@ -27,7 +27,7 @@ The purpose of this package is to aid in the rapid prototyping of analytic pipel
 The distance to uniqueness for a base-pair in a collection of genomic sequences is defined for each base as the shortest unique subsequence starting at that base.  The reverse complement can be taken into consideration when deciding the meaning of a unique subsequence.  It's easiest to see with a simple example that finds the metric for the base-pairs in the string `"AAAAACCCGACTGGGCTCA"`:
 
 ```{r}
-str="AAAAACCCGACTGGGCTCA"
+str<-"AAAAACCCGACTGGGCTCA"
 (results<-dtou(str,rc=TRUE)[[1]])
 ```
 
@@ -69,28 +69,40 @@ Argument  | Influence
 
 ## Ecoli example
 
-I downloaded and ecoli genome (strain K12, substrain MG 1655 ) with assembly name ASM584v2 using [NCBI Reference Sequence NC_000913.3](https://www.ncbi.nlm.nih.gov/nuccore/NC_000913.3?report=fasta).
+To proceed with this first example, download the following genomes from NCBI (in fasta format):
 
-When this vignette was compiled the link above leads to a webpage from which the fasta file may be downloaded.  I named my copy `ecoli_str_k_12_substr_mg1655.ASM584v2.fa` and put it in a subdirectory called `data`.  I also used `Biostrings::readDNAStringSet()` to load the data and then convert it to a character vector.  This can be done without the use of `Biostrings`, but Biostrings makes things much easier.  See the [Bioconductor page for Biostrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) for information on how to install `BioStrings`:
+* *E. coli* K12 MG1655 and 
+* *E.coli* O157:H7 Sakai.  
+
+When this vignette was compiled (September 2018), these links lead to the appropriate fasta files:
+
+* ecoli K12: [NCBI reference sequence NC_000913.3](https://www.ncbi.nlm.nih.gov/nuccore/NC_000913.3?report=fasta), and for 
+* ecoli O157:H7 [Genbank reference: BA000007.3](https://www.ncbi.nlm.nih.gov/nuccore/BA000007.3?report=fasta).
+
+I named my copies `ecoli_str_k_12_substr_mg1655.fa` and `ecoli_O157_H7_str_Sakai.fa` respectively.  Both were put in a subdirectory called `data`.  I also used `Biostrings::readDNAStringSet()` to load the data and then convert it to a character vector.  This can be done without the use of `Biostrings`, but Biostrings makes things much easier.  See the [Bioconductor page for Biostrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) for information on how to install `BioStrings`:
 
 ```{r,echo=FALSE,output=FALSE,message=FALSE}
 library(Biostrings)
-ecoli=readDNAStringSet("../data/ecoli_str_k_12_substr_mg1655.ASM584v2.fa")
+ecoli=readDNAStringSet("../data/ecoli_str_k_12_substr_mg1655.fa")
+ecoli2=readDNAStringSet("../data/ecoli_O157_H7_str_Sakai.fa")
 ```
 
 ```{r,eval=FALSE}
 library(Biostrings)
-ecoli=readDNAStringSet("data/ecoli_str_k_12_substr_mg1655.ASM584v2.fa")
+ecoli=readDNAStringSet("data/ecoli_str_k_12_substr_mg1655.fa")
+ecoli2=readDNAStringSet("data/ecoli_O157_H7_str_ Sakai.fa")
 ```
 
+The `Biostrings` format is not a character format, and we need that for `dtou()`, so we'll convert:
 
 ```{r}
 str<-as.character(ecoli)
+str2<-as.character(ecoli2)
 system.time({ecoli.dtou<-dtou(str)[[1]]})
-#system.time({ecolib.dtou<-c_dtouS2B(str,TRUE)[[1]]})
+system.time({ecoli2.dtou<-dtou(str)[[1]]})
 ```
 
-Let's start with a graph of the metric for the genome:
+Let's start with a graph of the metric for the K12 strain:
 
 ```{r,fig.width=7}
 plot(ecoli.dtou,
@@ -100,7 +112,7 @@ plot(ecoli.dtou,
 )
 ```
 
-From which we can see that there are some regions of high repetition spread-out somewhat evenly along the genome.  The two highest peaks are likely the longest repeated region.  The second highest peak is likely due to substantial overlap with the first peaks, but the scale of the index along the bottom is not consistent with that along the top-- the 3000 on the y-axis only covers 1/3 of a percent of the distance from 1e+06 to 2e+06.  
+We can see that there are some regions of high repetition spread-out somewhat evenly along the genome.  The two highest peaks are likely the longest repeated region.  The second highest peak is likely due to substantial overlap with the first peaks, but the scale of the index along the bottom is not consistent with that along the top-- the 3000 on the y-axis only covers 1/3 of a percent of the distance from 1e+06 to 2e+06.  
 
 We can find the maximum peak and have a closer look:
 
@@ -138,25 +150,38 @@ This histogram of this shows an interesting distribution:
 hist(log10(ecoli.dtou[ecoli.dtou>20]),main="E.coli Upper Tail Distance to Uniqueness",xlab="log10 dtou",sub="dtou > 20")
 ```
 
-We can get a closely related substrain as well:
 
-```{r,echo=FALSE,output=FALSE,message=FALSE}
-ecoli2=readDNAStringSet("../data/GCF_000005845.2_ASM584v2_genomic.fna")
-```
-```{r,eval=FALSE}
-ecoli2=readDNAStringSet("data/GCF_000005845.2_ASM584v2_genomic.fna")
-str2<-as.character(ecoli2)
+Here we need to use the `optimizeForSpeed` option because the two strings are very similar and the algorithm will descend too deeply into recursion if it doesn't switch to a different comparison technique when it knows that their are only two matching substrings.  Even then the quadratic penalty for repetition makes the comparison take over four hours:
+
+```{r}
+system.time({ecoli_both.dtou<-dtou(c(str,str2),optimizeForSpeed = TRUE)})
 ```
 
-Here we need to use the `optimizeForSpeed` option because the two strings are very similar and the algorithm will 
-system.time({both.dtou<-dtou(c(str,str2),optimizeForSpeed = TRUE)[[1]]})
+By comparing our results of the combined `dtou` with the original, we can see regions of strong overlap:
+
+```{r}
+plot(log10(difference+1),pch=".", ylab="log10 dtou",xlab="sequence index",main="E. coli K12 MG1655 vs E. coli O157:H7 Sakai")
 ```
+
+Note:  The genome is approximately 4.6 million base-pairs long-- on an image with a width of 1024 pixel a column of width 1 pixel covers over 4500 base-pairs in the sequence-- thus the graph effectively shows the presence/absence of dtou values for a sliding window of length around 4500.  The effect is worse for images of less width.
+
+The proportion of *E. coli* K12 MG1655 with more overlap with *E. Coli* O157:H7 Sakai than with itself is about 77%:
+
+```{r}
+sum(difference!=0)/length(difference)
 ```
-And 
+
+The histogram of the change in log10 dtou values are informative:
+
+```{r}
+hist(log10(difference),main="Comparision of E. coli K12 MG1655 to E. coli O157:H7 Sakai",xlab="log10 of diffrence in dtou")
+```
+
+Note:  By not adding 1 we remove the values that are the same so we are examing the 23% of the *#. coli* K12 MG1655 genome that shares significant sequence with *E. coli* O157:H7.
 
 # Homo Sapiens Chromosome I
 
-Here we will download *Homo Sapiens* Chromomome I and calculate the distance to uniqueness for the entire chromosome.  Appropriate modifications will need to be made if this example is being run using the windows command prompt instead of bash:
+For this example we will download *Homo Sapiens* Chromomome I and calculate the distance to uniqueness for the entire chromosome with a depth-limit of 10,000.  Appropriate modifications will need to be made if this example is being run using the windows command prompt instead of bash.  The run-time can be a bit-long so I'm only including the commands and their results:
 
 ```{bash,eval=FALSE}
 cd _bigTest
@@ -165,21 +190,47 @@ gunzip ./hs_ref_GRCh38.p12_chr1.fa.gz
 ```
 
 ```{r,eval=FALSE}
-library(Biostrings)
-chr1<-readDNAStringSet("../_bigTest/hs_ref_GRCh38.p12_chr1.fa",format="fasta")
+chr1<-readDNAStringSet("data/hs_ref_GRCh38.p12_chr1.fa",format="fasta")
 ```
 
 The alternate scaffolds are repeats.. so let's remove them:
 
 ```{r,eval=FALSE}
 chr1<-chr1[!grepl("alternate",names(chr1))]
-str=as.character(chr1)
+chr1=as.character(chr1)
 ```
 
-Now let's do some timing:
+The command below are not being evaluated because of the time they take:
 
 ```{r,eval=FALSE}
-system.time({results<-c_limiteddtouC(str,10000)})
+system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed=TRUE)})
+system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed=FALSE)})
 ```
 
+The overall run-time is slow, even using `optimizeForSpeed=TRUE`, because there are at least a few instances of deep triplets and the The **quadratic depth penalty** that results from repetition slows down the execution dramatically.
 
+flag                      | runtime
+--------------------------|-------------
+optimizeForSpeed = TRUE   | 2186.422 seconds (~36 minutes)
+optimizeForSpeed = FALSE  |  761.446 seconds (~12 minutes)
+
+
+
+```
+> system.time({results<-dtou(chr1,depth=10000)})
+Preparing to calculate dtou for 235350297 nucleotides and boundaries...
+	Processed 235350297 characters/boundaries.  Expected 235350297.
+	Beginning scan...done
+    user   system  elapsed 
+2178.246    2.203 2186.422 
+```
+Switching to the `optimizeForSpeed=TRUE` option helps dramatically:
+
+```
+> system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed = TRUE)})
+Preparing to calculate dtou for 235350297 nucleotides and boundaries...
+	Processed 235350297 characters/boundaries.  Expected 235350297.
+	Beginning scan...done
+   user  system elapsed 
+757.212   2.102 761.446 
+```

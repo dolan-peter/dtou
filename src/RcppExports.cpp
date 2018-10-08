@@ -42,18 +42,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// c_dtouS2B
-List c_dtouS2B(std::vector<std::string> RString, bool rc);
-RcppExport SEXP _dtou_c_dtouS2B(SEXP RStringSEXP, SEXP rcSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< std::vector<std::string> >::type RString(RStringSEXP);
-    Rcpp::traits::input_parameter< bool >::type rc(rcSEXP);
-    rcpp_result_gen = Rcpp::wrap(c_dtouS2B(RString, rc));
-    return rcpp_result_gen;
-END_RCPP
-}
 // c_dtouS2DepthLimit
 List c_dtouS2DepthLimit(std::vector<std::string> RString, bool rc, long depth);
 RcppExport SEXP _dtou_c_dtouS2DepthLimit(SEXP RStringSEXP, SEXP rcSEXP, SEXP depthSEXP) {
@@ -84,7 +72,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_dtou_c_dtou", (DL_FUNC) &_dtou_c_dtou, 2},
     {"_dtou_c_dtouDepthLimit", (DL_FUNC) &_dtou_c_dtouDepthLimit, 3},
     {"_dtou_c_dtouS2", (DL_FUNC) &_dtou_c_dtouS2, 2},
-    {"_dtou_c_dtouS2B", (DL_FUNC) &_dtou_c_dtouS2B, 2},
     {"_dtou_c_dtouS2DepthLimit", (DL_FUNC) &_dtou_c_dtouS2DepthLimit, 3},
     {"_dtou_c_vignetteExample", (DL_FUNC) &_dtou_c_vignetteExample, 2},
     {NULL, NULL, 0}

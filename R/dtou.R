@@ -31,8 +31,8 @@
 #'
 #'
 #' @param str A vector of characters.  Contains genomic sequences comprised of A,C,G,T,X, and N only.
-#' @param rc A logical scalar. Indicates whether to take reverse complements into consideration.
 #' @param depth A numeric scalar. Limits the max value of the dtou metric.
+#' @param rc A logical scalar. Indicates whether to take reverse complements into consideration.
 #' @param optimizeForSpeed A logical scalar. Introduces overhead into the recursion but my increase speed
 #' @return A list of numeric vectors containing the \emph{distance to uniqueness} value for each base-pair
 #' @export
@@ -43,7 +43,7 @@
 #' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE,depth=3)
 #' dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),depth=3,optimizeForSpeed=TRUE)
 #'
-dtou=function(str,rc=TRUE,depth=NULL,optimizeForSpeed=FALSE){
+dtou=function(str,depth=NULL,rc=TRUE,optimizeForSpeed=FALSE){
 	if(class(optimizeForSpeed)!="logical"){stop("Parameter <optimizeForSpeed> must be a logical")}
 	if(class(str)!="character"){stop("Parameter <str> must be a character")}
 	if(length(str)==0){stop("Parameter <str> must be non-empty")}

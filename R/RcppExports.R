@@ -13,10 +13,6 @@ c_dtouS2 <- function(RString, rc) {
     .Call('_dtou_c_dtouS2', PACKAGE = 'dtou', RString, rc)
 }
 
-c_dtouS2B <- function(RString, rc) {
-    .Call('_dtou_c_dtouS2B', PACKAGE = 'dtou', RString, rc)
-}
-
 c_dtouS2DepthLimit <- function(RString, rc, depth) {
     .Call('_dtou_c_dtouS2DepthLimit', PACKAGE = 'dtou', RString, rc, depth)
 }
