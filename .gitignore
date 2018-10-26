@@ -5,6 +5,6 @@
 src/*.o
 src/*.so
 src/*.dll
-nonpackageStorage/*
+notpackage/*
 inst/doc
 _bigTest/*

@@ -6,14 +6,14 @@
 \alias{dtou-package}
 \title{distance to uniqueness for collection of genetic sequences.}
 \usage{
-dtou(str, rc = TRUE, depth = NULL, optimizeForSpeed = FALSE)
+dtou(str, depth = NULL, rc = TRUE, optimizeForSpeed = FALSE)
 }
 \arguments{
 \item{str}{A vector of characters.  Contains genomic sequences comprised of A,C,G,T,X, and N only.}
 
-\item{rc}{A logical scalar. Indicates whether to take reverse complements into consideration.}
-
 \item{depth}{A numeric scalar. Limits the max value of the dtou metric.}
+
+\item{rc}{A logical scalar. Indicates whether to take reverse complements into consideration.}
 
 \item{optimizeForSpeed}{A logical scalar. Introduces overhead into the recursion but my increase speed}
 }
@@ -22,10 +22,10 @@ A list of numeric vectors containing the \emph{distance to uniqueness} value for
 }
 \description{
 \code{dtou} expects that genetic sequences will be represented as character vectors using only the
-upper-case characters 'A', 'C', 'G', 'T', 'X', and 'N'.  It performs no type-conversions so the input
+upper-case characters ACGTNX.  It performs no type-conversions so the input
 must already be of type character.
 
-The only function that should be directly invoked is \code{dtou()} which know how to call the C functions
+The only function that should be directly invoked is \code{dtou()} which knows how to call the appropriate C functions
 }
 \details{
 For each genetic sequence in the input parameter \code{str}, the function \code{dtou} returns the numeric
@@ -65,9 +65,11 @@ The third variation combines the previous two.  It is a depth limited optimize-f
 }
 
 \examples{
-dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE))
-dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=FALSE))
-dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE,depth=3))
-dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),depth=3,optimizeForSpeed=TRUE)))
+\donttest{
+dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE)
+dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=FALSE)
+dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),rc=TRUE,depth=3)
+dtou(c("AAAAACCCGACTGGGCTCA","ACCT"),depth=3,optimizeForSpeed=TRUE)
+}
 
 }

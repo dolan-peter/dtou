@@ -7,6 +7,8 @@ vignette: >
   %\VignetteIndexEntry{Vignette Title}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{Biostrings}
+  %\VignettedDepends{kableExtra}
 ---
 
 ```{r setup, include = FALSE}
@@ -72,7 +74,7 @@ Argument  | Influence
 To proceed with this first example, download the following genomes from NCBI (in fasta format):
 
 * *E. coli* K12 MG1655 and 
-* *E.coli* O157:H7 Sakai.  
+* *E. coli* O157:H7 Sakai.  
 
 When this vignette was compiled (September 2018), these links lead to the appropriate fasta files:
 
@@ -82,15 +84,20 @@ When this vignette was compiled (September 2018), these links lead to the approp
 I named my copies `ecoli_str_k_12_substr_mg1655.fa` and `ecoli_O157_H7_str_Sakai.fa` respectively.  Both were put in a subdirectory called `data`.  I also used `Biostrings::readDNAStringSet()` to load the data and then convert it to a character vector.  This can be done without the use of `Biostrings`, but Biostrings makes things much easier.  See the [Bioconductor page for Biostrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) for information on how to install `BioStrings`:
 
 ```{r,echo=FALSE,output=FALSE,message=FALSE}
+#Here is where we actually read the data into the file
 library(Biostrings)
-ecoli=readDNAStringSet("../data/ecoli_str_k_12_substr_mg1655.fa")
-ecoli2=readDNAStringSet("../data/ecoli_O157_H7_str_Sakai.fa")
+fn1=system.file("extdata","ecoli_str_k_12_substr_mg1655.fa",package="dtou")
+fn2=system.file("extdata","ecoli_O157_H7_str_Sakai.fa",package="dtou")
+ecoli=readDNAStringSet(fn1)
+ecoli2=readDNAStringSet(fn2)
+#ecoli=readDNAStringSet("../_data/ecoli_str_k_12_substr_mg1655.fa")
+#ecoli2=readDNAStringSet("../data/ecoli_O157_H7_str_Sakai.fa")
 ```
 
 ```{r,eval=FALSE}
 library(Biostrings)
 ecoli=readDNAStringSet("data/ecoli_str_k_12_substr_mg1655.fa")
-ecoli2=readDNAStringSet("data/ecoli_O157_H7_str_ Sakai.fa")
+ecoli2=readDNAStringSet("data/ecoli_O157_H7_str_Sakai.fa")
 ```
 
 The `Biostrings` format is not a character format, and we need that for `dtou()`, so we'll convert:
@@ -150,7 +157,6 @@ This histogram of this shows an interesting distribution:
 hist(log10(ecoli.dtou[ecoli.dtou>20]),main="E.coli Upper Tail Distance to Uniqueness",xlab="log10 dtou",sub="dtou > 20")
 ```
 
-
 Here we need to use the `optimizeForSpeed` option because the two strings are very similar and the algorithm will descend too deeply into recursion if it doesn't switch to a different comparison technique when it knows that their are only two matching substrings.  Even then the quadratic penalty for repetition makes the comparison take over four hours:
 
 ```{r}
@@ -159,7 +165,8 @@ system.time({ecoli_both.dtou<-dtou(c(str,str2),optimizeForSpeed = TRUE)})
 
 By comparing our results of the combined `dtou` with the original, we can see regions of strong overlap:
 
-```{r}
+```{r,fig.width=7}
+difference=ecoli_both.dtou[[1]]-ecoli.dtou
 plot(log10(difference+1),pch=".", ylab="log10 dtou",xlab="sequence index",main="E. coli K12 MG1655 vs E. coli O157:H7 Sakai")
 ```
 
@@ -173,8 +180,8 @@ sum(difference!=0)/length(difference)
 
 The histogram of the change in log10 dtou values are informative:
 
-```{r}
-hist(log10(difference),main="Comparision of E. coli K12 MG1655 to E. coli O157:H7 Sakai",xlab="log10 of diffrence in dtou")
+```{r,fig.width=7}
+hist(log10(difference),main="Comparison of E. coli K12 MG1655 to E. coli O157:H7 Sakai",xlab="log10 of diffrence in dtou")
 ```
 
 Note:  By not adding 1 we remove the values that are the same so we are examing the 23% of the *#. coli* K12 MG1655 genome that shares significant sequence with *E. coli* O157:H7.
@@ -200,7 +207,13 @@ chr1<-chr1[!grepl("alternate",names(chr1))]
 chr1=as.character(chr1)
 ```
 
-The command below are not being evaluated because of the time they take:
+We also need to remove the characters that are not in the set `ACGTXN`.  There are only two of them:
+
+```{r,eval=FALSE}
+substr(chr1[[12]],25143579,25143579)<-"X"
+substr(chr1[[12]],25146187,25146187)<-"X"
+```
+The command below are not being evaluated in this vignette because of the time they take and the storage size of the results:
 
 ```{r,eval=FALSE}
 system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed=TRUE)})
@@ -211,26 +224,85 @@ The overall run-time is slow, even using `optimizeForSpeed=TRUE`, because there 
 
 flag                      | runtime
 --------------------------|-------------
-optimizeForSpeed = TRUE   | 2186.422 seconds (~36 minutes)
-optimizeForSpeed = FALSE  |  761.446 seconds (~12 minutes)
+optimizeForSpeed = FALSE  | 2186.422 seconds (~36 minutes)
+optimizeForSpeed = TRUE   |  761.446 seconds (~12 minutes)
 
+We use the `shrinkToMinimum()` function to find the length of the shortest unique subsequence covering each nucleotide:
 
+```{r,eval=FALSE}
+dtos<-shrinkToMinimum(results)
+```
+
+```{r,echo=FALSE}
+#Load the data previously calculated and saved
+#load("../notpackage/chr1.rdata")
+```
+
+and then we calculate the deciles for this 
+
+```{r,eval=FALSE}
+q=sapply(dtos,function(d){quantile(d,1:9*0.1)})
+```
+
+```{r,echo=FALSE}
+#Load the data previously calculated and saved... the raw data is too large for an R package
+fn=system.file("extdata","quantile.rdata",package="dtou")
+load(fn) #Loads q
+```
+
+We generate a table of these values:
+
+```{r,results='asis'}
+kable(t(q))
+```
+
+From this it is clear that several of these contigs are highly repetitive.  These end up being the *patches* that update different regions of the other sequences in the FASTA file.
+
+# Douglas-Fir Transcriptome
+
+Finally, let's look at an example of a large data-set with relative low amounts of repetitiveness.  Download the Douglas-Fir (*Pseudotsuaga menziensii*) transcriptome reference from tree genes (address https://treegenesdb.org/FTP/Transcriptome/TSA/Psme/Psme_TSA.fasta) and saved as `Psme_TSA.fasta` inside the `data` subdirectory
+
+```{r,eval=FALSE}
+df=readDNAStringSet("data/Psme_TSA.fasta")
+ref=as.character(df)
+df.dtou=dtou(ref,optimizeForSpeed = TRUE)
+```
+
+This FASTA file contains over 331,725 sequences ranging from a minimum of 201 nucleotides to a maximum of 14,488 (which again, makes it too large to include in this package):
 
 ```
-> system.time({results<-dtou(chr1,depth=10000)})
-Preparing to calculate dtou for 235350297 nucleotides and boundaries...
-	Processed 235350297 characters/boundaries.  Expected 235350297.
-	Beginning scan...done
-    user   system  elapsed 
-2178.246    2.203 2186.422 
+summary(sapply(ref,nchar))
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    201     423     746    1102    1462   14488 
 ```
-Switching to the `optimizeForSpeed=TRUE` option helps dramatically:
 
+We can calculate the longest `dtou()` value and divide by the length to see which transcripts show the highest amount of repetition:
+
+```{r,eval=FALSE}
+l=sapply(df.dtou,length)
+max=sapply(df.dtou,max)
 ```
-> system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed = TRUE)})
-Preparing to calculate dtou for 235350297 nucleotides and boundaries...
-	Processed 235350297 characters/boundaries.  Expected 235350297.
-	Beginning scan...done
-   user  system elapsed 
-757.212   2.102 761.446 
+
+```{r,echo=FALSE}
+fn=system.file("extdata","psme.rdata",package="dtou")
+load(fn) #Loads q
 ```
+
+Now, let's produce an index-plot of the percentage of each transcript taken up by the longest repeat:
+
+```{r,fig.width=7}
+plot(max/l,pch=".",main="Percentage of transcript covered by longest repeat",ylab="Percentage")
+```
+
+Perhaps more informatively let's sort the values in descending order:
+
+```{r,fig.width=7}
+plot(sort(max/l,decreasing=TRUE),pch=".",main="Percentage of transcript covered by longest repeat",ylab="Percentage")
+```
+
+From which it's clear that nearly 100,000 of the transcripts are actually duplicates.  The exact count is 
+
+```{r}
+sum(max/l==1)
+```
+
