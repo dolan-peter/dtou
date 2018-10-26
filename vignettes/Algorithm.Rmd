@@ -7,7 +7,7 @@ output:
     includes:
       in_header: my_header.tex
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Algorithm Details}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
   %\VignetteDepends{Biostrings}
