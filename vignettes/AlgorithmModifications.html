@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Peter Dolan" />
+
+<meta name="date" content="2018-10-26" />
+
+<title>Algorithm Modifications</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; position: absolute; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource a.sourceLine:empty
+  { position: absolute; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Algorithm Modifications</h1>
+<h4 class="author"><em>Peter Dolan</em></h4>
+<h4 class="date"><em>2018-10-26</em></h4>
+
+
+
+<p>This will contain an example of modifying the recursion function that is at the heart of the <code>dtou</code> algorithm. The algorithm will be modified to replicate a <span class="math inline">\(k\)</span>-mer calculation for the amount of repetitiveness as measured by the number of repeated <span class="math inline">\(k\)</span>-mers. Our version will generate these statistics for all <span class="math inline">\(k\)</span>-mers of 1 to 101.</p>
+<p>The underlying recursive subroutine used by the algorithm is just below. The <code>depth&gt;=d</code> condition limits the depth of the recursion. It uses several global variables and doesn’t do anything except recurse the stack-tree (see <a href="Algorithm.html">algorithm</a>). Keeping track of the <code>stackSize</code> is often unnecessary and there are variants in the C++ source code that don’t keep track of it (every variable not included in a function allows the call-back stack to go that much deeper before a stack overflow).</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="dt">void</span> depthLimitedVignetteRecurse(<span class="dt">long</span> Ip1, <span class="dt">long</span> depth,<span class="dt">long</span> stackSize){</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">    <span class="dt">long</span> A1=-<span class="dv">1</span>, C1=-<span class="dv">1</span>, G1=-<span class="dv">1</span>, T1=-<span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">    <span class="dt">long</span> ASize=<span class="dv">0</span>,CSize=<span class="dv">0</span>,GSize=<span class="dv">0</span>,TSize=<span class="dv">0</span>;</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5">    <span class="cf">if</span>(depth&gt;d){<span class="cf">return</span>;}</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6">    <span class="cf">if</span>(Ip1==-<span class="dv">1</span>){<span class="cf">return</span>;}</a>
+<a class="sourceLine" id="cb1-7" data-line-number="7">    <span class="cf">if</span>(Indices[Ip1]==-<span class="dv">1</span>){ <span class="co">// Only one entry exists in the stack</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8">        <span class="cf">return</span>;</a>
+<a class="sourceLine" id="cb1-9" data-line-number="9">    }</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10">    i=Ip1;</a>
+<a class="sourceLine" id="cb1-11" data-line-number="11">    <span class="cf">while</span>(i!=-<span class="dv">1</span>){</a>
+<a class="sourceLine" id="cb1-12" data-line-number="12">        next_i=Indices[i];</a>
+<a class="sourceLine" id="cb1-13" data-line-number="13">        <span class="cf">switch</span>(str[i+depth]){</a>
+<a class="sourceLine" id="cb1-14" data-line-number="14">        <span class="cf">case</span> <span class="ch">'A'</span>:</a>
+<a class="sourceLine" id="cb1-15" data-line-number="15">            Indices[i]=A1; A1=i; ASize++;</a>
+<a class="sourceLine" id="cb1-16" data-line-number="16">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-17" data-line-number="17">        <span class="cf">case</span> <span class="ch">'C'</span>:</a>
+<a class="sourceLine" id="cb1-18" data-line-number="18">            Indices[i]=C1; C1=i; CSize++;</a>
+<a class="sourceLine" id="cb1-19" data-line-number="19">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-20" data-line-number="20">        <span class="cf">case</span> <span class="ch">'G'</span>:</a>
+<a class="sourceLine" id="cb1-21" data-line-number="21">            Indices[i]=G1; G1=i; GSize++;</a>
+<a class="sourceLine" id="cb1-22" data-line-number="22">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-23" data-line-number="23">        <span class="cf">case</span> <span class="ch">'T'</span>:</a>
+<a class="sourceLine" id="cb1-24" data-line-number="24">            Indices[i]=T1; T1=i; TSize++;</a>
+<a class="sourceLine" id="cb1-25" data-line-number="25">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-26" data-line-number="26">        <span class="cf">case</span> <span class="ch">'N'</span>:   <span class="cf">case</span> <span class="ch">'X'</span>:</a>
+<a class="sourceLine" id="cb1-27" data-line-number="27">            Indices[i]=-<span class="dv">1</span>;</a>
+<a class="sourceLine" id="cb1-28" data-line-number="28">            <span class="cf">break</span>;</a>
+<a class="sourceLine" id="cb1-29" data-line-number="29">        }</a>
+<a class="sourceLine" id="cb1-30" data-line-number="30">        i=next_i;</a>
+<a class="sourceLine" id="cb1-31" data-line-number="31">    }</a>
+<a class="sourceLine" id="cb1-32" data-line-number="32">    depthLimitedVignetteRecurse(A1,depth+<span class="dv">1</span>,ASize);</a>
+<a class="sourceLine" id="cb1-33" data-line-number="33">    depthLimitedVignetteRecurse(C1,depth+<span class="dv">1</span>,CSize);</a>
+<a class="sourceLine" id="cb1-34" data-line-number="34">    depthLimitedVignetteRecurse(G1,depth+<span class="dv">1</span>,GSize);</a>
+<a class="sourceLine" id="cb1-35" data-line-number="35">    depthLimitedVignetteRecurse(T1,depth+<span class="dv">1</span>,TSize);</a>
+<a class="sourceLine" id="cb1-36" data-line-number="36">    <span class="cf">return</span>;</a>
+<a class="sourceLine" id="cb1-37" data-line-number="37">}</a></code></pre></div>
+<p>Here (using a global <code>counts</code> variable) is how we record the number of <span class="math inline">\(d\)</span>-mers for <span class="math inline">\(0 \le d \le 100\)</span>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode c"><code class="sourceCode c"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="dt">void</span> depthLimitedVignetteRecurse(<span class="dt">long</span> Ip1, <span class="dt">long</span> depth,<span class="dt">long</span> stackSize){</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">    [...]</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">    <span class="cf">if</span>(depth&gt;d){<span class="cf">return</span>;}</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">    <span class="cf">if</span>(Ip1==-<span class="dv">1</span>){<span class="cf">return</span>;}</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">    counts[depth]+=stackSize;</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="cf">if</span>(Indices[Ip1]==-<span class="dv">1</span>){ <span class="co">// Only one entry exists in the stack</span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">        <span class="cf">return</span>;</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">    }</a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">    i=Ip1;</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">    <span class="cf">while</span>(i!=-<span class="dv">1</span>){</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11">        [...]</a>
+<a class="sourceLine" id="cb2-12" data-line-number="12">    }</a>
+<a class="sourceLine" id="cb2-13" data-line-number="13">    depthLimitedVignetteRecurse(A1,depth+<span class="dv">1</span>,ASize);</a>
+<a class="sourceLine" id="cb2-14" data-line-number="14">    depthLimitedVignetteRecurse(C1,depth+<span class="dv">1</span>,CSize);</a>
+<a class="sourceLine" id="cb2-15" data-line-number="15">    depthLimitedVignetteRecurse(G1,depth+<span class="dv">1</span>,GSize);</a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">    depthLimitedVignetteRecurse(T1,depth+<span class="dv">1</span>,TSize);</a>
+<a class="sourceLine" id="cb2-17" data-line-number="17">    <span class="cf">return</span>;</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18">}</a></code></pre></div>
+<p>To begin we’ll need a data-set. I downloaded an ecoli genome ASM584v2 from NCBI and put it in a directory called data. This next bit doesn’t require the <code>Biostrings</code> package but it makes it easier to load the fasta file:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">library</span>(Biostrings)</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="kw">library</span>(dtou)</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3">fn=<span class="kw">system.file</span>(<span class="st">&quot;extdata&quot;</span>,<span class="st">&quot;ecoli_str_k_12_substr_mg1655.fa&quot;</span>,<span class="dt">package=</span><span class="st">&quot;dtou&quot;</span>)</a>
+<a class="sourceLine" id="cb3-4" data-line-number="4">ecoli&lt;-<span class="kw">readDNAStringSet</span>(fn)</a>
+<a class="sourceLine" id="cb3-5" data-line-number="5">str&lt;-<span class="kw">as.character</span>(ecoli)</a>
+<a class="sourceLine" id="cb3-6" data-line-number="6"><span class="kw">system.time</span>({results&lt;-<span class="kw">c_vignetteExample</span>(str,<span class="ot">TRUE</span>)})</a>
+<a class="sourceLine" id="cb3-7" data-line-number="7"><span class="co">#&gt; Preparing to calculate dtou for 4641653 nucleotides and boundaries...</span></a>
+<a class="sourceLine" id="cb3-8" data-line-number="8"><span class="co">#&gt;  Beginning Recursion...done</span></a>
+<a class="sourceLine" id="cb3-9" data-line-number="9"><span class="co">#&gt;  Preparing output...done</span></a>
+<a class="sourceLine" id="cb3-10" data-line-number="10"><span class="co">#&gt;    user  system elapsed </span></a>
+<a class="sourceLine" id="cb3-11" data-line-number="11"><span class="co">#&gt;   3.003   0.019   3.028</span></a>
+<a class="sourceLine" id="cb3-12" data-line-number="12">n&lt;-<span class="dv">30</span></a>
+<a class="sourceLine" id="cb3-13" data-line-number="13"><span class="kw">plot</span>(<span class="dv">0</span><span class="op">:</span>n,results[<span class="dv">1</span><span class="op">:</span>(n<span class="op">+</span><span class="dv">1</span>)]<span class="op">/</span>results[<span class="dv">2</span>],<span class="dt">xlab=</span><span class="st">&quot;k-mer&quot;</span>,<span class="dt">ylab=</span><span class="st">&quot;Percentage of repetitiveness&quot;</span>,<span class="dt">type=</span><span class="st">&quot;b&quot;</span>,<span class="dt">main=</span><span class="st">&quot;Duplication in ecoli&quot;</span>)</a></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>This could be derived from the <code>dtou</code> statistic too:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">system.time</span>({</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">    ecoli.dtou&lt;-<span class="kw">dtou</span>(str,<span class="dt">rc=</span><span class="ot">TRUE</span>)[[<span class="dv">1</span>]]</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">    r2&lt;-<span class="kw">sapply</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">100</span>,<span class="cf">function</span>(n){<span class="kw">sum</span>(ecoli.dtou<span class="op">&gt;=</span>n)})</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">})</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"><span class="co">#&gt; Preparing to calculate dtou for 4641653 nucleotides and boundaries...</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co">#&gt;  Processed 4641653 characters/boundaries.  Expected 4641653.</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">#&gt;  Beginning scan...done</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="co">#&gt;    user  system elapsed </span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="co">#&gt;   5.537   0.512   6.064</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="kw">all</span>(results[<span class="op">-</span><span class="dv">1</span>]<span class="op">/</span><span class="dv">2</span><span class="op">==</span>r2)</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11"><span class="co">#&gt; [1] TRUE</span></a></code></pre></div>
+<p>The second approach puts no aprior upper bound on the <span class="math inline">\(k\)</span>-mer size, but it does require loading an array of the same size as the genomic sequence into memory which might be problematic in some situations and the entire calculation takes more than twice as long (although it’s still only a few seconds)</p>
+<div id="other-variations" class="section level2">
+<h2>Other variations</h2>
+<p>Here are some other easy to implement variations:</p>
+<ul>
+<li>Return the array of indices generated by the algorithm when run with a depth-limit</li>
+<li>Return the average distance between hexamers</li>
+<li>Return the distance necessary to find 3 <code>CG</code> dimers.</li>
+</ul>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
