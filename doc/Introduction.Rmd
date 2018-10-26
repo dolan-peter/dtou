@@ -1,0 +1,308 @@
+---
+title: "Introduction and Examples of Use"
+author: "Peter Dolan"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{Biostrings}
+  %\VignettedDepends{kableExtra}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(dtou)
+library(kableExtra)
+```
+
+## Purpose
+
+The purpose of this package is to aid in the rapid prototyping of analytic pipelines by introducing an algorithm developed to calculate the **distance to uniqueness** (see below) metric of genomic sequences into R.  The package implements the `dtou` function-- uses of which are shown below, but perhaps even more importantly, the algorithm implemented in the C++ source code that forms the backbone of the procedure can be modified for novel analytic purposes (see [companion vignette for modifying source code](AlgorithmModifications.html) for an example)
+
+## Distance to Uniqueness
+
+The distance to uniqueness for a base-pair in a collection of genomic sequences is defined for each base as the shortest unique subsequence starting at that base.  The reverse complement can be taken into consideration when deciding the meaning of a unique subsequence.  It's easiest to see with a simple example that finds the metric for the base-pairs in the string `"AAAAACCCGACTGGGCTCA"`:
+
+```{r}
+str<-"AAAAACCCGACTGGGCTCA"
+(results<-dtou(str,rc=TRUE)[[1]])
+```
+
+(The default value for `rc` is `TRUE`, but its nice to be explicit)
+
+It will be easier to explain with a table:
+
+```{r,echo=FALSE}
+tmp=strsplit(str,'')[[1]]
+names(results)=tmp
+kable(t(results))
+```
+
+The 5 under the initial `A` means that the 4-mer `AAAA` is repeated, but the 5-mer `AAAAA` is not.  This is because overlaps are allowed.
+
+The 4 under the first `C` means that the 4-mer `CCCG` is unique but the 3-mer `CCC` is not.  Although the 3-mer `CCC` is not repeated, its reverse complement `GGG` does appear in the string.  If we run `dtou()` with `rc=FALSE`:
+
+```{r}
+(results<-dtou(str,rc=FALSE)[[1]])
+```
+
+```{r,echo=FALSE}
+tmp=strsplit(str,'')[[1]]
+names(results)=tmp
+kable(t(results))
+```
+
+Then `CCC` is unique and the metric has changed to represent this fact.
+
+## Usage
+
+The workhorse functions are all written in C++.  They *can* be invoked directly, but the function `dtou()` is designed to find the appropriate function based upon its arguments. The following arguments determine the behavior of the function
+
+Argument  | Influence
+----------|----------
+`rc`      | Boolean that determines if the reverse comlement is taken into consideration
+`depth`   | By default the recursion is not depth-limited.  Setting this value to a positive number determines the max depth of the recursion
+`optimizeForSpeed` | Determines whether the algorithm switches to a faster technique when the stack size is 2
+
+## Ecoli example
+
+To proceed with this first example, download the following genomes from NCBI (in fasta format):
+
+* *E. coli* K12 MG1655 and 
+* *E. coli* O157:H7 Sakai.  
+
+When this vignette was compiled (September 2018), these links lead to the appropriate fasta files:
+
+* ecoli K12: [NCBI reference sequence NC_000913.3](https://www.ncbi.nlm.nih.gov/nuccore/NC_000913.3?report=fasta), and for 
+* ecoli O157:H7 [Genbank reference: BA000007.3](https://www.ncbi.nlm.nih.gov/nuccore/BA000007.3?report=fasta).
+
+I named my copies `ecoli_str_k_12_substr_mg1655.fa` and `ecoli_O157_H7_str_Sakai.fa` respectively.  Both were put in a subdirectory called `data`.  I also used `Biostrings::readDNAStringSet()` to load the data and then convert it to a character vector.  This can be done without the use of `Biostrings`, but Biostrings makes things much easier.  See the [Bioconductor page for Biostrings](https://bioconductor.org/packages/release/bioc/html/Biostrings.html) for information on how to install `BioStrings`:
+
+```{r,echo=FALSE,output=FALSE,message=FALSE}
+#Here is where we actually read the data into the file
+library(Biostrings)
+fn1=system.file("extdata","ecoli_str_k_12_substr_mg1655.fa",package="dtou")
+fn2=system.file("extdata","ecoli_O157_H7_str_Sakai.fa",package="dtou")
+ecoli=readDNAStringSet(fn1)
+ecoli2=readDNAStringSet(fn2)
+#ecoli=readDNAStringSet("../_data/ecoli_str_k_12_substr_mg1655.fa")
+#ecoli2=readDNAStringSet("../data/ecoli_O157_H7_str_Sakai.fa")
+```
+
+```{r,eval=FALSE}
+library(Biostrings)
+ecoli=readDNAStringSet("data/ecoli_str_k_12_substr_mg1655.fa")
+ecoli2=readDNAStringSet("data/ecoli_O157_H7_str_Sakai.fa")
+```
+
+The `Biostrings` format is not a character format, and we need that for `dtou()`, so we'll convert:
+
+```{r}
+str<-as.character(ecoli)
+str2<-as.character(ecoli2)
+system.time({ecoli.dtou<-dtou(str)[[1]]})
+system.time({ecoli2.dtou<-dtou(str)[[1]]})
+```
+
+Let's start with a graph of the metric for the K12 strain:
+
+```{r,fig.width=7}
+plot(ecoli.dtou,
+		 pch=".",
+		 main="Distance to Uniqueness for base-pairs in Ecoli sequence",
+		 xlab="index",ylab="dtou"
+)
+```
+
+We can see that there are some regions of high repetition spread-out somewhat evenly along the genome.  The two highest peaks are likely the longest repeated region.  The second highest peak is likely due to substantial overlap with the first peaks, but the scale of the index along the bottom is not consistent with that along the top-- the 3000 on the y-axis only covers 1/3 of a percent of the distance from 1e+06 to 2e+06.  
+
+We can find the maximum peak and have a closer look:
+
+```{r,fig.width=7}
+window.length=7000
+i=which.max(ecoli.dtou)
+lower=i-window.length
+upper=i+window.length
+zoom=lower:upper
+head(zoom)
+plot(zoom,
+		 ecoli.dtou[zoom],
+		 pch=".",
+		 main="Distance to Uniqueness for base-pairs in Ecoli sequence (zoomed)",
+		 xlab="index",ylab="dtou"
+)
+```
+
+The majority of the dtou's for this sequence are low so it's more informative to look at the deciles than a histogram:
+
+```{r}
+quantile(ecoli.dtou,1:9*0.1)
+```
+
+We can see that only 2.8 percent of the genome is repetitive at a $20$-mer level or higher:
+
+```{r}
+sum(ecoli.dtou>20)
+sum(ecoli.dtou>20)/length(ecoli.dtou)
+```
+
+This histogram of this shows an interesting distribution:
+
+```{r,fig.width=7}
+hist(log10(ecoli.dtou[ecoli.dtou>20]),main="E.coli Upper Tail Distance to Uniqueness",xlab="log10 dtou",sub="dtou > 20")
+```
+
+Here we need to use the `optimizeForSpeed` option because the two strings are very similar and the algorithm will descend too deeply into recursion if it doesn't switch to a different comparison technique when it knows that their are only two matching substrings.  Even then the quadratic penalty for repetition makes the comparison take over four hours:
+
+```{r}
+system.time({ecoli_both.dtou<-dtou(c(str,str2),optimizeForSpeed = TRUE)})
+```
+
+By comparing our results of the combined `dtou` with the original, we can see regions of strong overlap:
+
+```{r,fig.width=7}
+difference=ecoli_both.dtou[[1]]-ecoli.dtou
+plot(log10(difference+1),pch=".", ylab="log10 dtou",xlab="sequence index",main="E. coli K12 MG1655 vs E. coli O157:H7 Sakai")
+```
+
+Note:  The genome is approximately 4.6 million base-pairs long-- on an image with a width of 1024 pixel a column of width 1 pixel covers over 4500 base-pairs in the sequence-- thus the graph effectively shows the presence/absence of dtou values for a sliding window of length around 4500.  The effect is worse for images of less width.
+
+The proportion of *E. coli* K12 MG1655 with more overlap with *E. Coli* O157:H7 Sakai than with itself is about 77%:
+
+```{r}
+sum(difference!=0)/length(difference)
+```
+
+The histogram of the change in log10 dtou values are informative:
+
+```{r,fig.width=7}
+hist(log10(difference),main="Comparison of E. coli K12 MG1655 to E. coli O157:H7 Sakai",xlab="log10 of diffrence in dtou")
+```
+
+Note:  By not adding 1 we remove the values that are the same so we are examing the 23% of the *#. coli* K12 MG1655 genome that shares significant sequence with *E. coli* O157:H7.
+
+# Homo Sapiens Chromosome I
+
+For this example we will download *Homo Sapiens* Chromomome I and calculate the distance to uniqueness for the entire chromosome with a depth-limit of 10,000.  Appropriate modifications will need to be made if this example is being run using the windows command prompt instead of bash.  The run-time can be a bit-long so I'm only including the commands and their results:
+
+```{bash,eval=FALSE}
+cd _bigTest
+wget ftp://ftp.ncbi.nih.gov/genomes/Homo_sapiens/CHR_01/hs_ref_GRCh38.p12_chr1.fa.gz
+gunzip ./hs_ref_GRCh38.p12_chr1.fa.gz
+```
+
+```{r,eval=FALSE}
+chr1<-readDNAStringSet("data/hs_ref_GRCh38.p12_chr1.fa",format="fasta")
+```
+
+The alternate scaffolds are repeats.. so let's remove them:
+
+```{r,eval=FALSE}
+chr1<-chr1[!grepl("alternate",names(chr1))]
+chr1=as.character(chr1)
+```
+
+We also need to remove the characters that are not in the set `ACGTXN`.  There are only two of them:
+
+```{r,eval=FALSE}
+substr(chr1[[12]],25143579,25143579)<-"X"
+substr(chr1[[12]],25146187,25146187)<-"X"
+```
+The command below are not being evaluated in this vignette because of the time they take and the storage size of the results:
+
+```{r,eval=FALSE}
+system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed=TRUE)})
+system.time({results<-dtou(chr1,depth=10000,optimizeForSpeed=FALSE)})
+```
+
+The overall run-time is slow, even using `optimizeForSpeed=TRUE`, because there are at least a few instances of deep triplets and the The **quadratic depth penalty** that results from repetition slows down the execution dramatically.
+
+flag                      | runtime
+--------------------------|-------------
+optimizeForSpeed = FALSE  | 2186.422 seconds (~36 minutes)
+optimizeForSpeed = TRUE   |  761.446 seconds (~12 minutes)
+
+We use the `shrinkToMinimum()` function to find the length of the shortest unique subsequence covering each nucleotide:
+
+```{r,eval=FALSE}
+dtos<-shrinkToMinimum(results)
+```
+
+```{r,echo=FALSE}
+#Load the data previously calculated and saved
+#load("../notpackage/chr1.rdata")
+```
+
+and then we calculate the deciles for this 
+
+```{r,eval=FALSE}
+q=sapply(dtos,function(d){quantile(d,1:9*0.1)})
+```
+
+```{r,echo=FALSE}
+#Load the data previously calculated and saved... the raw data is too large for an R package
+fn=system.file("extdata","quantile.rdata",package="dtou")
+load(fn) #Loads q
+```
+
+We generate a table of these values:
+
+```{r,results='asis'}
+kable(t(q))
+```
+
+From this it is clear that several of these contigs are highly repetitive.  These end up being the *patches* that update different regions of the other sequences in the FASTA file.
+
+# Douglas-Fir Transcriptome
+
+Finally, let's look at an example of a large data-set with relative low amounts of repetitiveness.  Download the Douglas-Fir (*Pseudotsuaga menziensii*) transcriptome reference from tree genes (address https://treegenesdb.org/FTP/Transcriptome/TSA/Psme/Psme_TSA.fasta) and saved as `Psme_TSA.fasta` inside the `data` subdirectory
+
+```{r,eval=FALSE}
+df=readDNAStringSet("data/Psme_TSA.fasta")
+ref=as.character(df)
+df.dtou=dtou(ref,optimizeForSpeed = TRUE)
+```
+
+This FASTA file contains over 331,725 sequences ranging from a minimum of 201 nucleotides to a maximum of 14,488 (which again, makes it too large to include in this package):
+
+```
+summary(sapply(ref,nchar))
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    201     423     746    1102    1462   14488 
+```
+
+We can calculate the longest `dtou()` value and divide by the length to see which transcripts show the highest amount of repetition:
+
+```{r,eval=FALSE}
+l=sapply(df.dtou,length)
+max=sapply(df.dtou,max)
+```
+
+```{r,echo=FALSE}
+fn=system.file("extdata","psme.rdata",package="dtou")
+load(fn) #Loads q
+```
+
+Now, let's produce an index-plot of the percentage of each transcript taken up by the longest repeat:
+
+```{r,fig.width=7}
+plot(max/l,pch=".",main="Percentage of transcript covered by longest repeat",ylab="Percentage")
+```
+
+Perhaps more informatively let's sort the values in descending order:
+
+```{r,fig.width=7}
+plot(sort(max/l,decreasing=TRUE),pch=".",main="Percentage of transcript covered by longest repeat",ylab="Percentage")
+```
+
+From which it's clear that nearly 100,000 of the transcripts are actually duplicates.  The exact count is 
+
+```{r}
+sum(max/l==1)
+```
+

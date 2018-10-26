@@ -1,0 +1,153 @@
+---
+title: "Algorithm Details"
+author: "Peter Dolan"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document:
+    includes:
+      in_header: my_header.tex
+vignette: >
+  %\VignetteIndexEntry{Algorithm Details}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{Biostrings}
+  %\VignettedDepends{kableExtra}
+---
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+Let $\Gamma$ denote the alphabet out of which the strings to be analyzed can be constructed.  Without loss of generality $\Gamma = \left\{\textrm{C,G,T,A} \right\}$-- any modifications for different alphabets being minor.  A unique \textit{termination} character, here denoted 'X', is appended to each string and the results are concatenated before analysis.   Let this string be denoted ${\tt Str1}$.  (See Algorithm 1a).  In a genome reference an 'X' would be used to separate contigs, and in a transcriptome reference to separate the transcripts.
+
+The data structure is a $\left|\Gamma\right|$-ary tree of stacks with children labelled by the entries of $\Gamma$.  In our example it is a 4-ary tree for which each node has an 'A'-child, a 'C'-child, a 'G'-child, ' and a 'T'-child. (see Figure 1)  The tree is built using depth-first recursion and only the nodes on the path from the root to the current node are retained in memory.  The nodes contain stacks of locations within ${\tt Str1}$ that correspond to the path from root to node (see figure below).
+
+![Tree of Stacks](TreeFigureExpanded.pdf)
+
+Except for temporary processing-- the stacks of internal nodes are empty.  At each step in the creation-process,  a leaf node produces up to four children labeled, A, C, G, or T.  The locations contained in the parent node are popped from the stack and the value at that location is used to determine the stack to which that location will subsequently be pushed.  Prior to being pushed from the parent-stack onto the child-stack the value of a location is incremented by 1. (See Algorithm 1b)
+
+%For example, if the string to be analyzed started with  'ATAGCG' and an interior node contained 3,4, and 5 (zero-based indexing corresponding to characters 'G', 'C', and 'G') then during processing, the 3 would be popped, the 'G' at location 3  would determine that the destination stack belongs to the 'G'-child and a 4 (three plus one) would be pushed onto the 'G'-child's stack.  The next location to be processed, a 4,  would be popped and determine that a 5 should be pushed on to the 'C'-child's stack, etc.  This process is continued until all non-empty stacks contain only one entry.   Encountering an 'X', stops the process regardless of the number of entries on a stack (this requires a bit of care to deal with gracefully in some applications).   Using depth first recursion the tree is produced by analyzing the nodes depth-first.  Depth information can be passed as an argument to the recursively called function which allows a modified form of the algorithm to be stopped at a particular depth (guaranteeing a linear run-time).    
+
+\begin{algorithm}[H]
+\centering
+\caption{Overview}
+\label{setup}
+\begin{minipage}{1.0\textwidth}
+\smallskip
+\begin{center}
+{\textrm{(a) \bf Setup}}
+\end{center}
+\begin{algorithmic}[1]
+\State Append a stop-symbol to every string to be analyzed and concatenate
+\State $Str1 \gets$ cocnatenated string
+\State $n \gets Str1.length$
+\State Create root node and root node stack
+\State Push 0:(n-1) to the root node's stack
+\State Push -1 to the root node's stack
+\State ProcessNode(root,0)
+\end{algorithmic}
+\end{minipage}
+\begin{minipage}{1.0\textwidth}
+  \smallskip
+\begin{center}
+  \hrulefill \\
+  \smallskip
+  {\textrm{(b) \bf Process Node}}
+  \end{center}
+\begin{algorithmic}[1]
+\Function{ProcessNode}{node, depth}
+\While{stack not empty}
+\State $l \gets pop(node)$
+\If{$Str1[l]==$'X'}
+\State Record depth in array $dtou$ and return
+\EndIf
+\State push $l+1$ on child-stack indicated by $Str1[l]$
+\EndWhile
+\State [Apply any novel processing]
+\State ProcessNode(child A)
+\State ProcessNode(child C)
+\State ProcessNode(child G)
+\State ProcessNode(child T)
+\EndFunction
+\end{algorithmic}
+\smallskip
+\end{minipage}
+\end{algorithm}
+
+The path from root to leaf determines the substring associated to the node's stack, but this information does not need to be stored since the depth of the node can be used with any  location in that node's stack to determine the substring of associated to the path.  This is not used in calculating the distance to uniqueness metric, but can be useful for novel processing needs.
+
+If the reverse complement of a genome sequence is added to the set of strings to be analyzed then the algorithm can detect repetition in both the forward and the reverse complement direction.
+\subsubsection*{First Refinement}
+
+Using an actual tree of stacks requires dynamic memory allocation and the memory requirements become nondeterministic.  The call-back stack of the recursive function call can be used to encode the tree portion of the tree of stacks described above.  The stacks may all be efficiently stored in a single array of fixed size as described below.  In this way the memory usage of everything except the run-time call-back stack can be determined before run-time.   There is a run-time expense that is incurred for this deterministic approach and if the amount of repetition in the sequence being analyzed is high the call-stack can still run out of memory.
+
+Instead of  actual stacks, an array of ${\tt long ints}$ becomes a collection of "virtual stacks" denoted in the psuedo-code as ${\tt I1}$.  The index of an entry in array ${\tt I1}$ corresponds to a location in the sequence being analyzed (the current depth of the recursion is added to the index to determined the base-pair location).  The value of an entry in ${\tt I1}$  is another index of ${\tt I1}$ that corresponds in the same way to the next base-pair position stored in that "virtual stack".  An index value of -1 represents the bottom of the stack.  The array ${\tt I1}$ is initialized as the same length of the sequence and contains the values $1$ to $n-1$ and a final $-1$.  At this point the ${\tt I1}$ is encoding a single stack containing all the locations.  The function loops through all the entries in its stack, stopping when it encounters the value $-1$. (see Algorithm 2).  Upon entry into ${\tt recurseTree}$ The variable ${\tt Ip1}$ holds the top of the current stack during the ${\tt while}$-loop it continues to represent the top of the stack.
+
+\begin{algorithm}[t!]
+\centering
+\caption{Recursion structure}
+\label{recursion}
+\begin{minipage}{1.0\textwidth}
+\smallskip
+\begin{algorithmic}[1]
+\Function{recurseTree}{Ip1, depth}
+\State Set children stack index-pointers to -1: $A1=C1=G1=T1=-1$
+\If{$Ip1==-1$}
+\Return false
+\EndIf
+\If{$I1[Ip1]<0$}
+\State $dtou[Ip1]\gets depth$  
+\State \Return false
+\EndIf
+\State $i\gets Ip1$
+\While{$i\ne-1$}
+\State $i\gets Ip1$
+\State $next\gets I1[i]$
+\Switch{$S1[i+depth]$}
+\Case{'A'}
+\State $I1[i]\gets A1$
+\State $A1\gets i$
+\EndCase
+\Case{'C'}
+\State $I1[i]\gets C1$
+\State $C1\gets i$
+\EndCase
+\Case{'G'}
+\State $I1[i]\gets G1$
+\State $G1\gets i$
+\EndCase
+\Case{'T'}
+\State $I1[i]\gets T1$
+\State $T1\gets i$
+\EndCase
+\Case{'N' or 'X'}
+\State $I1[i]\gets -1$
+\State $dtou[i]\gets depth$
+\EndCase
+\EndSwitch
+\State $i \gets next$
+\EndWhile
+\State RecurseTree(A1,depth+1)
+\State RecurseTree(C1,depth+1)
+\State RecurseTree(G1,depth+1)
+\State RecurseTree(T1,depth+1)
+\EndFunction
+\end{algorithmic}
+\end{minipage}
+\end{algorithm}
+
+In other words, when the recursion is at $depth=m$ Then $I1[Ip1]$ contains the location of the **next** sub-string identical to $Str1[Ip1:(Ip1+m)]$.
+
+\subsubsection*{Second Refinement}
+
+By adding a ${\tt stackDepth}$ variable to the procedure the program can swich to a more efficient ${\tt while}$-loop when only two elements are contained in its stack-- this removes the overhead of the long-tail recursion that would otherwise result for highly repetitive regions that are only duplicated once.  It does, however, introduce added overhead, both in terms of run-time and memory in the ${\tt RecurseTree}$ function.  The run-time penalty is more than paid for by the improvements when the stack-size is down to two, but the extra memory requirements accrued by the variables that hold the stack sizes limit the recursion depth-- this can still be an issue when there are more than two copies of a highly repetitive region.  Depth-limiting the recursion fixes this problem at the cost of putting an upper-limit on the reported length of a repetitive region.  
+
+\subsection*{Algorithm analysis}
+
+The run-time is determined by the amount of repetitiveness in the sequence.  Each character in the sequence is accessed as many times as the length of the shortest unique subsequence containing it.  For example, the complete genome of E. coli K-12 has 97 percent of its unique subsequences of length 19 or less and only 2.8 percent (details of the calculation can be found in the ${\tt dtou}$ package's introductory vignette).  This is close to an optimal situation and the run-time for analysis on this 4.64 million base sequence was approximately 3.4 second on an i7-3770 CPU @ 3.40GHz.  In contrast the collection of contigs available for the first human chromosome, contain alternate assemblies that are almost completely identical to other regions in the collection.   Running the software  on that data required depth-limiting to 5,000 to ensure the callback stack didn't over overflow and still took about 38 minutes despite only being 51.4 times larger.
+
+Technically the depth-limited version of the algorithm is linear, being $\mathcal{O}(\textrm{depth limit}*n)$ but the constants are large enough that the run-time is not particularly satisfying if the repetition level is high.
